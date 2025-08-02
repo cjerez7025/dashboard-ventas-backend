@@ -1,4 +1,4 @@
-// Program.cs - Versión completa corregida
+// Program.cs - Versión con CORS actualizado
 using TodoApi.Services;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -22,15 +22,19 @@ builder.Services.AddSwaggerGen();
 // Registrar GoogleSheetsService
 builder.Services.AddScoped<GoogleSheetsService>();
 
-// Configurar CORS para Angular
+// Configurar CORS para Angular y Vercel
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular",
         policy =>
         {
-            policy.WithOrigins("http://localhost:4200")
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+            policy.WithOrigins(
+                "http://localhost:4200",                    // Para desarrollo local
+                "https://todo-frontend2-gamma.vercel.app",  // Tu dominio de Vercel
+                "https://*.vercel.app"                      // Cualquier subdominio de Vercel
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
         });
 });
 
