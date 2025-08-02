@@ -21,6 +21,13 @@ namespace TodoApi.Controllers
             try
             {
                 var data = await _googleSheetsService.GetVentasDataAsync();
+                
+                // Redondear valores NAP en los totales
+                foreach (var total in data.Totales)
+                {
+                    total.Value.Nap = Math.Round(total.Value.Nap, 0);
+                }
+                
                 return Ok(data);
             }
             catch (Exception ex)
@@ -45,9 +52,9 @@ namespace TodoApi.Controllers
                 var resumen = new
                 {
                     TotalVentas = totalVentas,
-                    TotalNap = Math.Round(totalNap, 2),
+                    TotalNap = Math.Round(totalNap, 0),
                     PromedioMensualVentas = Math.Round((double)totalVentas / data.Totales.Count, 1),
-                    PromedioMensualNap = Math.Round(totalNap / data.Totales.Count, 2),
+                    PromedioMensualNap = Math.Round(totalNap / data.Totales.Count, 0),
                     MesesProcesados = data.Totales.Count,
                     UltimaActualizacion = DateTime.Now
                 };
@@ -77,7 +84,7 @@ namespace TodoApi.Controllers
                 {
                     Labels = nombresMeses,
                     Ventas = meses.Select(m => data.Totales.GetValueOrDefault(m, new VentasMes()).Ventas).ToArray(),
-                    Nap = meses.Select(m => data.Totales.GetValueOrDefault(m, new VentasMes()).Nap).ToArray()
+                    Nap = meses.Select(m => Math.Round(data.Totales.GetValueOrDefault(m, new VentasMes()).Nap, 0)).ToArray()
                 };
 
                 return Ok(tendencia);
