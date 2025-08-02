@@ -89,7 +89,7 @@ namespace TodoApi.Services
                 var estadoIndex = FindColumnIndex(headers, "estado");
                 var coordIndex = FindColumnIndex(headers, "nombre coordinador");
                 var ejecutivoIndex = FindColumnIndex(headers, "nombre ejecutivo");
-                var napIndex = 18; // Columna S (NAP)
+                var napIndex = 19; // Columna S (NAP)
                 var modalidadIndex = 21; // Columna V
                 var productoIndex = 23; // Columna X
 
