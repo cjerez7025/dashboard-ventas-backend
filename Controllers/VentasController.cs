@@ -25,7 +25,7 @@ namespace TodoApi.Controllers
                 // Redondear valores NAP en los totales
                 foreach (var total in data.Totales)
                 {
-                    total.Value.Nap = Math.Round(total.Value.Nap, 0);
+                    total.Value.Nap = Math.Round(total.Value.Nap, 2);
                 }
                 
                 return Ok(data);
@@ -52,9 +52,9 @@ namespace TodoApi.Controllers
                 var resumen = new
                 {
                     TotalVentas = totalVentas,
-                    TotalNap = Math.Round(totalNap, 0),
+                    TotalNap = Math.Round(totalNap, 2),
                     PromedioMensualVentas = Math.Round((double)totalVentas / data.Totales.Count, 1),
-                    PromedioMensualNap = Math.Round(totalNap / data.Totales.Count, 0),
+                    PromedioMensualNap = Math.Round(totalNap / data.Totales.Count, 2),
                     MesesProcesados = data.Totales.Count,
                     UltimaActualizacion = DateTime.Now
                 };
@@ -84,7 +84,7 @@ namespace TodoApi.Controllers
                 {
                     Labels = nombresMeses,
                     Ventas = meses.Select(m => data.Totales.GetValueOrDefault(m, new VentasMes()).Ventas).ToArray(),
-                    Nap = meses.Select(m => Math.Round(data.Totales.GetValueOrDefault(m, new VentasMes()).Nap, 0)).ToArray()
+                    Nap = meses.Select(m => Math.Round(data.Totales.GetValueOrDefault(m, new VentasMes()).Nap, 2)).ToArray()
                 };
 
                 return Ok(tendencia);
@@ -182,6 +182,63 @@ namespace TodoApi.Controllers
             {
                 return StatusCode(500, new { 
                     error = "Error al obtener datos de productos", 
+                    message = ex.Message 
+                });
+            }
+        }
+
+        [HttpGet("productos/{mes?}")]
+        public async Task<ActionResult<object>> GetProductosPorMes(string? mes = null)
+        {
+            try
+            {
+                var data = await _googleSheetsService.GetVentasDataAsync();
+                
+                // Si no se especifica mes, usar el último mes disponible
+                if (string.IsNullOrEmpty(mes))
+                {
+                    var mesesDisponibles = new[] { "julio", "junio", "mayo", "abril", "marzo", "febrero", "enero" };
+                    mes = mesesDisponibles.FirstOrDefault(m => data.Productos.ContainsKey(m)) ?? "julio";
+                }
+                else
+                {
+                    mes = mes.ToLower();
+                }
+
+                // Verificar que el mes existe
+                if (!data.Productos.ContainsKey(mes))
+                {
+                    return BadRequest(new { error = $"No hay datos disponibles para el mes: {mes}" });
+                }
+
+                var productosDelMes = data.Productos[mes];
+                var productosOrdenados = productosDelMes
+                    .OrderByDescending(p => p.Value)
+                    .Take(8)
+                    .ToList();
+
+                var totalVentas = productosDelMes.Values.Sum();
+
+                var resultado = new
+                {
+                    Mes = mes,
+                    Productos = productosOrdenados.Select(p => new
+                    {
+                        Nombre = p.Key,
+                        Ventas = p.Value,
+                        Porcentaje = Math.Round((double)p.Value / totalVentas * 100, 1)
+                    }).ToArray(),
+                    MesesDisponibles = new[] { "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio" }
+                        .Where(m => data.Productos.ContainsKey(m))
+                        .ToArray()
+                };
+
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { 
+                    error = "Error al obtener datos de productos por mes", 
                     message = ex.Message 
                 });
             }
