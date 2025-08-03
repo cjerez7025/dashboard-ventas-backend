@@ -85,11 +85,11 @@ namespace TodoApi.Services
                 var headers = response.Values[0].Select(h => h?.ToString() ?? "").ToList();
                 var rows = response.Values.Skip(1).ToList();
 
-                // Buscar índices de columnas (igual que tu Apps Script)
+                // Buscar índices de columnas
                 var estadoIndex = FindColumnIndex(headers, "estado");
                 var coordIndex = FindColumnIndex(headers, "nombre coordinador");
                 var ejecutivoIndex = FindColumnIndex(headers, "nombre ejecutivo");
-                var napIndex = 19; // Columna S (NAP)
+                var napIndex = 18; // Columna S (NAP)
                 var modalidadIndex = 21; // Columna V
                 var productoIndex = 23; // Columna X
 
@@ -117,10 +117,18 @@ namespace TodoApi.Services
 
                 foreach (var row in aprobados)
                 {
-                    // NAP real de columna S
-                    if (napIndex < row.Count && double.TryParse(row[napIndex]?.ToString(), out double nap))
+                    // NAP real de columna S con parsing mejorado
+                    if (napIndex < row.Count && !string.IsNullOrEmpty(row[napIndex]?.ToString()))
                     {
-                        napTotalMes += nap;
+                        var napString = row[napIndex].ToString().Replace(",", ".");
+                        if (double.TryParse(napString, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double nap))
+                        {
+                            napTotalMes += nap;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"No se pudo parsear NAP: {row[napIndex]?.ToString()}");
+                        }
                     }
 
                     // Coordinadores
@@ -155,11 +163,13 @@ namespace TodoApi.Services
                     if (productoIndex < row.Count && !string.IsNullOrEmpty(row[productoIndex]?.ToString()))
                     {
                         var producto = row[productoIndex].ToString()!.Trim();
-                        // Limpiar nombre del producto (igual que Apps Script)
+                        // Limpiar nombre del producto
                         producto = System.Text.RegularExpressions.Regex.Replace(producto, @"^PLAN\s+\d+:\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                         productosDelMes[producto] = productosDelMes.GetValueOrDefault(producto, 0) + 1;
                     }
                 }
+
+                Console.WriteLine($"{mes}: NAP Total = {napTotalMes}");
 
                 return new MesDataResult
                 {
